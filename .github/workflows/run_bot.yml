@@ -9,17 +9,15 @@ on:
 jobs:
   run-script:
     runs-on: ubuntu-latest
-    
-    # This block turns on Node 24 support globally to stop the warning
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
+      # Updated to v4.2.2 for native Node 24 compatibility
       - name: Checkout repository code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
+      # Updated to v5.4.0 for native Node 24 compatibility
       - name: Set up Python environment
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.4.0
         with:
           python-version: '3.10'
 
