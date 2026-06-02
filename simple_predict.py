@@ -19,7 +19,6 @@ headers = {
 }
 
 # --- 1. Auto-Delete Yesterday's Message ---
-# We read the saved ID from the previous run and delete it to keep the chat clean
 log_file = "last_msg_id.txt"
 if os.path.exists(log_file):
     try:
@@ -32,7 +31,7 @@ if os.path.exists(log_file):
     except Exception as e:
         print(f"Cleanup skip: {e}")
 
-# --- 2. Live Scraper Loop ---
+# --- 2. Live Scraper Method ---
 def get_live_data():
     numbers = []
     latest_panna = ""
@@ -56,20 +55,42 @@ def get_live_data():
         print(f"Scrape warning: {e}")
     return numbers, latest_panna
 
-print("Scanning live chart data...")
+print("Initializing tracking engine...")
 initial_numbers, baseline_panna = get_live_data()
 
+# --- 3. Smart Monitoring Loop ---
 max_checks = 180
-for i in range(max_checks):
-    current_numbers, current_panna = get_live_data()
-    if (current_panna != baseline_panna and current_panna != "") or (len(current_numbers) > len(initial_numbers)):
-        initial_numbers = current_numbers
-        baseline_panna = current_panna
-        break
-    time.sleep(10)
+check_interval = 10
+result_published = False
 
-# --- 3. Prediction Math ---
-digit_counts = collections.Counter(initial_numbers if initial_numbers else list("55772255"))
+# If a live panna is already present right now, bypass waiting entirely
+if baseline_panna:
+    print(f"Current live Panna detected instantly: {baseline_panna}. Skipping loop wait.")
+    result_published = True
+else:
+    print("No live panna found yet. Entering loop monitoring state...")
+    for i in range(max_checks):
+        current_numbers, current_panna = get_live_data()
+        
+        # Trigger immediately if a new number gets published
+        if current_panna != "" or (len(current_numbers) > len(initial_numbers)):
+            print(f"New result published! Panna: {current_panna}")
+            initial_numbers = current_numbers
+            baseline_panna = current_panna
+            result_published = True
+            break
+            
+        time.sleep(check_interval)
+
+if not result_published:
+    print("Monitoring timeout reached. Processing baseline data trends.")
+
+# Fallback data baseline check
+if not initial_numbers:
+    initial_numbers = list("5577225589071128679212901247535713601399144957802260")
+
+# --- 4. Prediction Logic ---
+digit_counts = collections.Counter(initial_numbers)
 top_items = digit_counts.most_common(2)
 d1 = top_items[0][0] if len(top_items) > 0 else "7"
 d2 = top_items[1][0] if len(top_items) > 1 else "2"
@@ -83,7 +104,7 @@ formatted_date = current_time_ist.strftime("%d-%m-%Y")
 formatted_time = current_time_ist.strftime("%I:%M %p")
 session_tag = "OPEN SESSION" if current_time_ist.hour < 17 else "CLOSE SESSION"
 
-# --- 4. Generate Alert Message ---
+# --- 5. Generate Alert Message ---
 tg_message = (
     "🚨 *KALYAN INSTANT RESULT* 🚨\n"
     f"📅 *Date:* `{formatted_date}` | 🕒 *Time:* `{formatted_time}`\n"
@@ -98,11 +119,9 @@ tg_message = (
     "ℹ️ _This alert will self-delete when the next session updates._"
 )
 
-# --- 5. Dispatch Screenshot Image with Text Caption ---
+# --- 6. Send to Telegram ---
 if clean_token and TELEGRAM_CHAT_ID:
-    # Generates a fresh picture snapshot of the live table layout
     screenshot_url = f"https://thum.io{url}"
-    
     tg_url = f"https://telegram.org{clean_token}/sendPhoto"
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
@@ -111,12 +130,14 @@ if clean_token and TELEGRAM_CHAT_ID:
         "parse_mode": "Markdown"
     }
     
-    res = requests.post(tg_url, data=payload)
-    if res.status_code == 200:
-        # Save the new message ID so the next run can find it and delete it
-        new_msg_id = res.json().get("result", {}).get("message_id")
-        with open(log_file, "w") as f:
-            f.write(str(new_msg_id))
-        print(f"SUCCESS: Alert sent. Saved message ID: {new_msg_id}")
-    else:
-        print(f"Telegram error: {res.status_code}")
+    try:
+        res = requests.post(tg_url, data=payload, timeout=15)
+        if res.status_code == 200:
+            new_msg_id = res.json().get("result", {}).get("message_id")
+            with open(log_file, "w") as f:
+                f.write(str(new_msg_id))
+            print(f"SUCCESS: Notification sent. Message ID: {new_msg_id}")
+        else:
+            print(f"Telegram returned error code: {res.status_code}")
+    except Exception as e:
+        print(f"Failed to deliver: {e}")
