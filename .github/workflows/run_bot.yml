@@ -1,10 +1,9 @@
-name: Run Kalyan Predictor Daily
+name: Run Live Kalyan Tracker Loop
 
 on:
   schedule:
-    # Trigger 1: 4:00 PM IST (10:30 UTC) | Trigger 2: 6:00 PM IST (12:30 UTC)
-    - cron: '30 10 * * *'
-    - cron: '30 12 * * *'
+    # Wakes up automatically every day at 3:40 PM IST (10:10 AM UTC)
+    - cron: '10 10 * * *'
   workflow_dispatch: 
 
 jobs:
@@ -24,5 +23,5 @@ jobs:
           python3 -m pip install --upgrade pip
           pip3 install requests beautifulsoup4 pytz
 
-      - name: Run calculation engine and send alerts
+      - name: Start Realtime Monitoring Loop
         run: python3 simple_predict.py
