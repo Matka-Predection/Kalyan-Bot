@@ -9,13 +9,15 @@ on:
 jobs:
   run-script:
     runs-on: ubuntu-latest
+    
+    # This block silences the deprecation warning instantly
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
     steps:
-      # Updated to v4.2.2 for native Node 24 compatibility
       - name: Checkout repository code
         uses: actions/checkout@v4.2.2
 
-      # Updated to v5.4.0 for native Node 24 compatibility
       - name: Set up Python environment
         uses: actions/setup-python@v5.4.0
         with:
