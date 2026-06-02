@@ -1,0 +1,27 @@
+name: Run Live Kalyan Close Tracker Loop
+
+on:
+  schedule:
+    # Wakes up automatically every day at 5:40 PM IST (12:10 PM UTC)
+    - cron: '10 12 * * *'
+  workflow_dispatch: 
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    
+    env:
+      TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v5
+
+      - name: Install website reader and timezone tools
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install requests beautifulsoup4 pytz
+
+      - name: Start Realtime Monitoring Close Loop
+        run: python3 simple_predict.py
