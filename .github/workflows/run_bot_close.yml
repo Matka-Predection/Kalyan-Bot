@@ -2,7 +2,8 @@ name: Run Live Kalyan Close Tracker Loop
 
 on:
   schedule:
-    - cron: '10 12 * * *'
+    # Wakes up automatically Monday to Friday at 5:40 PM IST (12:10 PM UTC)
+    - cron: '10 12 * * 1-5'
   workflow_dispatch: 
 
 jobs:
@@ -10,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     
     env:
-      TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+      TELEGRAM_TOKEN: ${{ secrets.MY_SECRET_BOT_KEY }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
     steps:
@@ -25,7 +26,6 @@ jobs:
       - name: Start Realtime Monitoring Close Loop
         run: python3 simple_predict.py
 
-      # Allows GitHub to save the message ID back into your repository tracking log
       - name: Save Tracking State
         run: |
           git config --global user.name "github-actions[bot]"
