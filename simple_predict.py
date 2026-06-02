@@ -34,92 +34,63 @@ if os.path.exists(log_file):
 # --- 2. Live Scraper Method ---
 def get_live_data():
     numbers = []
-    latest_panna = ""
     try:
         res = requests.get(url, headers=headers, timeout=10)
         if res.status_code == 200:
             soup = BeautifulSoup(res.text, 'html.parser')
-            rows = soup.find_all('tr')
-            if rows:
-                for last_row in reversed(rows):
-                    cells = [c.text.strip() for c in last_row.find_all('td') if c.text.strip()]
-                    valid_pannas = [c for c in cells if c.isdigit() and len(c) == 3]
-                    if valid_pannas:
-                        latest_panna = valid_pannas[-1]
-                        break
             for td in soup.find_all('td'):
                 text = td.text.strip().replace('-', '').replace(' ', '')
                 if text.isdigit() and len(text) <= 4:
                     numbers.extend(list(text))
     except Exception as e:
         print(f"Scrape warning: {e}")
-    return numbers, latest_panna
+    return numbers
 
-print("Initializing tracking engine...")
-initial_numbers, baseline_panna = get_live_data()
+print("Analyzing current chart state parameters...")
+initial_numbers = get_live_data()
 
-# --- 3. Smart Monitoring Loop ---
-max_checks = 180
-check_interval = 10
-result_published = False
-
-# If a live panna is already present right now, bypass waiting entirely
-if baseline_panna:
-    print(f"Current live Panna detected instantly: {baseline_panna}. Skipping loop wait.")
-    result_published = True
-else:
-    print("No live panna found yet. Entering loop monitoring state...")
-    for i in range(max_checks):
-        current_numbers, current_panna = get_live_data()
-        
-        # Trigger immediately if a new number gets published
-        if current_panna != "" or (len(current_numbers) > len(initial_numbers)):
-            print(f"New result published! Panna: {current_panna}")
-            initial_numbers = current_numbers
-            baseline_panna = current_panna
-            result_published = True
-            break
-            
-        time.sleep(check_interval)
-
-if not result_published:
-    print("Monitoring timeout reached. Processing baseline data trends.")
-
-# Fallback data baseline check
+# Fallback data baseline check if website fails to load
 if not initial_numbers:
     initial_numbers = list("5577225589071128679212901247535713601399144957802260")
 
-# --- 4. Prediction Logic ---
+# --- 3. Advanced Prediction Math ---
 digit_counts = collections.Counter(initial_numbers)
-top_items = digit_counts.most_common(2)
+top_items = digit_counts.most_common(4)
+
+# Safely extract top 4 trend numbers for comprehensive pairings
 d1 = top_items[0][0] if len(top_items) > 0 else "7"
 d2 = top_items[1][0] if len(top_items) > 1 else "2"
+d3 = top_items[2][0] if len(top_items) > 2 else "1"
+d4 = top_items[3][0] if len(top_items) > 3 else "5"
 
 cut_numbers = {'1':'6', '2':'7', '3':'8', '4':'9', '5':'0', '6':'1', '7':'2', '8':'3', '9':'4', '0':'5'}
-c1, c2 = cut_numbers.get(d1, "2"), cut_numbers.get(d2, "7")
+c1 = cut_numbers.get(d1, "2")
+c2 = cut_numbers.get(d2, "7")
 
+# --- Timing Setup ---
 ist_timezone = pytz.timezone('Asia/Kolkata')
 current_time_ist = datetime.now(ist_timezone)
 formatted_date = current_time_ist.strftime("%d-%m-%Y")
 formatted_time = current_time_ist.strftime("%I:%M %p")
-session_tag = "OPEN SESSION" if current_time_ist.hour < 17 else "CLOSE SESSION"
+session_tag = "OPEN STRATEGY" if current_time_ist.hour < 17 else "CLOSE STRATEGY"
 
-# --- 5. Generate Alert Message ---
+# --- 4. Generate Strategy Prediction Message ---
 tg_message = (
-    "🚨 *KALYAN INSTANT RESULT* 🚨\n"
+    "🔮 *KALYAN MATHEMATICAL PREDICTIONS* 🔮\n"
     f"📅 *Date:* `{formatted_date}` | 🕒 *Time:* `{formatted_time}`\n"
-    f"📌 *Timing:* `{session_tag}`\n"
+    f"📌 *Target Session:* `{session_tag}`\n"
     "━━━━━━━━━━━━━━━━━━━━━\n"
-    f"⚡ *LIVE RUNNING PANNA:* 🔥 `{baseline_panna if baseline_panna else 'Not Listed'}` 🔥\n"
+    "🎯 *HIGH-PROBABILITY JODIS (PAIRS):*\n"
+    f"👉 Direct Line: `{d1}{d2}` • `{d2}{d1}` • `{d3}{d4}`\n"
+    f"👉 Cross Line:  `{d1}{c1}` • `{d2}{c2}` • `{d3}{c2}`\n\n"
+    "📋 *HIGH-PROBABILITY PANNAS (PANELS):*\n"
+    f"👉 Open Pannas:  `12{d1}` • `25{d3}` • `{d1}{d2}0`\n"
+    f"👉 Close Pannas: `35{d2}` • `14{d4}` • `78{d1}`\n"
     "━━━━━━━━━━━━━━━━━━━━━\n"
-    f"🔮 *Single Digits:* `{d1}` and `{d2}`\n"
-    f"🎲 *Top Jodis:* `{d1}{d2}`, `{d2}{d1}`, `{d1}{c1}`, `{d2}{c2}`\n"
-    f"📋 *Top Pannas:* `{d1}{d2}0`, `12{d1}`, `35{d2}`\n"
-    "━━━━━━━━━━━━━━━━━━━━━\n"
-    "ℹ️ _This alert will self-delete when the next session updates._"
+    "ℹ️ _This predictive panel self-deletes when the next calculation completes._"
 )
 
-# --- 6. Send to Telegram ---
+# --- 5. Send Photo to Telegram ---
 if clean_token and TELEGRAM_CHAT_ID:
     screenshot_url = f"https://thum.io{url}"
     tg_url = f"https://telegram.org{clean_token}/sendPhoto"
@@ -136,8 +107,8 @@ if clean_token and TELEGRAM_CHAT_ID:
             new_msg_id = res.json().get("result", {}).get("message_id")
             with open(log_file, "w") as f:
                 f.write(str(new_msg_id))
-            print(f"SUCCESS: Notification sent. Message ID: {new_msg_id}")
+            print(f"SUCCESS: Prediction panel dispatched. Message ID: {new_msg_id}")
         else:
-            print(f"Telegram returned error code: {res.status_code}")
+            print(f"Telegram processing alert error: {res.status_code}")
     except Exception as e:
-        print(f"Failed to deliver: {e}")
+        print(f"Delivery breakdown: {e}")
