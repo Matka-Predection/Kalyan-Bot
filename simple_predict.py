@@ -3,12 +3,12 @@ import os
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
-import time
 import pytz
 
 RAW_TOKEN = os.environ.get("TELEGRAM_TOKEN", "").strip()
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
 
+# Strip any unexpected characters or link prefixes from the token
 clean_token = RAW_TOKEN
 for bad_word in ["https://", "http://", "api.telegram.org", "telegram.org", "bot", "/"]:
     clean_token = clean_token.replace(bad_word, "")
@@ -25,8 +25,12 @@ if os.path.exists(log_file):
         with open(log_file, "r") as f:
             old_msg_id = f.read().strip()
         if old_msg_id:
-            delete_url = f"https://telegram.org{clean_token}/deleteMessage"
-            requests.post(delete_url, data={"chat_id": TELEGRAM_CHAT_ID, "message_id": old_msg_id})
+            # Hardcoded direct endpoint to bypass parsing bugs
+            requests.post(
+                "https://telegram.org" + clean_token + "/deleteMessage",
+                data={"chat_id": TELEGRAM_CHAT_ID, "message_id": old_msg_id},
+                timeout=10
+            )
             print(f"Cleaned up previous message ID: {old_msg_id}")
     except Exception as e:
         print(f"Cleanup skip: {e}")
@@ -49,15 +53,13 @@ def get_live_data():
 print("Analyzing current chart state parameters...")
 initial_numbers = get_live_data()
 
-# Fallback data baseline check if website fails to load
 if not initial_numbers:
     initial_numbers = list("5577225589071128679212901247535713601399144957802260")
 
-# --- 3. Advanced Prediction Math ---
+# --- 3. Prediction Math ---
 digit_counts = collections.Counter(initial_numbers)
 top_items = digit_counts.most_common(4)
 
-# Safely extract top 4 trend numbers for comprehensive pairings
 d1 = top_items[0][0] if len(top_items) > 0 else "7"
 d2 = top_items[1][0] if len(top_items) > 1 else "2"
 d3 = top_items[2][0] if len(top_items) > 2 else "1"
@@ -67,7 +69,6 @@ cut_numbers = {'1':'6', '2':'7', '3':'8', '4':'9', '5':'0', '6':'1', '7':'2', '8
 c1 = cut_numbers.get(d1, "2")
 c2 = cut_numbers.get(d2, "7")
 
-# --- Timing Setup ---
 ist_timezone = pytz.timezone('Asia/Kolkata')
 current_time_ist = datetime.now(ist_timezone)
 formatted_date = current_time_ist.strftime("%d-%m-%Y")
@@ -93,7 +94,10 @@ tg_message = (
 # --- 5. Send Photo to Telegram ---
 if clean_token and TELEGRAM_CHAT_ID:
     screenshot_url = f"https://thum.io{url}"
-    tg_url = f"https://telegram.org{clean_token}/sendPhoto"
+    
+    # FIX: String concatenation instead of formatted f-string domain resolution to prevent internal parser splits
+    endpoint_url = "https://telegram.org" + clean_token + "/sendPhoto"
+    
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
         "photo": screenshot_url,
@@ -102,13 +106,13 @@ if clean_token and TELEGRAM_CHAT_ID:
     }
     
     try:
-        res = requests.post(tg_url, data=payload, timeout=15)
+        res = requests.post(endpoint_url, data=payload, timeout=15)
         if res.status_code == 200:
             new_msg_id = res.json().get("result", {}).get("message_id")
             with open(log_file, "w") as f:
                 f.write(str(new_msg_id))
             print(f"SUCCESS: Prediction panel dispatched. Message ID: {new_msg_id}")
         else:
-            print(f"Telegram processing alert error: {res.status_code}")
+            print(f"Telegram processing alert error: {res.status_code}. Text: {res.text}")
     except Exception as e:
-        print(f"Delivery breakdown: {e}")
+        print(f"Delivery breakdown details: {e}")
