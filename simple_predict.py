@@ -18,16 +18,28 @@ headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 }
 
+# --- 1. Auto-Delete Yesterday's Message ---
+# We read the saved ID from the previous run and delete it to keep the chat clean
+log_file = "last_msg_id.txt"
+if os.path.exists(log_file):
+    try:
+        with open(log_file, "r") as f:
+            old_msg_id = f.read().strip()
+        if old_msg_id:
+            delete_url = f"https://telegram.org{clean_token}/deleteMessage"
+            requests.post(delete_url, data={"chat_id": TELEGRAM_CHAT_ID, "message_id": old_msg_id})
+            print(f"Cleaned up previous message ID: {old_msg_id}")
+    except Exception as e:
+        print(f"Cleanup skip: {e}")
+
+# --- 2. Live Scraper Loop ---
 def get_live_data():
-    """Scrapes the chart and returns all digits and the latest active panna entry."""
     numbers = []
     latest_panna = ""
     try:
         res = requests.get(url, headers=headers, timeout=10)
         if res.status_code == 200:
             soup = BeautifulSoup(res.text, 'html.parser')
-            
-            # Extract last row panna
             rows = soup.find_all('tr')
             if rows:
                 for last_row in reversed(rows):
@@ -36,8 +48,6 @@ def get_live_data():
                     if valid_pannas:
                         latest_panna = valid_pannas[-1]
                         break
-            
-            # Extract historical digits
             for td in soup.find_all('td'):
                 text = td.text.strip().replace('-', '').replace(' ', '')
                 if text.isdigit() and len(text) <= 4:
@@ -46,37 +56,21 @@ def get_live_data():
         print(f"Scrape warning: {e}")
     return numbers, latest_panna
 
-print("Initializing live baseline data tracking...")
+print("Scanning live chart data...")
 initial_numbers, baseline_panna = get_live_data()
-print(f"Initial baseline Panna recorded: {baseline_panna}")
 
-# Execution loop controls: scans every 10 seconds for up to 30 minutes (180 attempts)
 max_checks = 180
-check_interval = 10 
-result_published = False
-
-print("Starting live monitoring loop. Scanning site for changes every 10 seconds...")
-
 for i in range(max_checks):
     current_numbers, current_panna = get_live_data()
-    
-    # Check if a new Panna has been posted or if the page data length has changed
     if (current_panna != baseline_panna and current_panna != "") or (len(current_numbers) > len(initial_numbers)):
-        print(f"🔥 MATCH SEEN: New result published on website! Panna: {current_panna}")
-        initial_numbers = current_numbers  # Update data pool with the newly published data
+        initial_numbers = current_numbers
         baseline_panna = current_panna
-        result_published = True
         break
-        
-    time.sleep(check_interval)
+    time.sleep(10)
 
-if not result_published:
-    print("Timeout reached: No new update seen within 30 minutes. Dispatching current data.")
-
-# --- Prediction Engine Calculations ---
+# --- 3. Prediction Math ---
 digit_counts = collections.Counter(initial_numbers if initial_numbers else list("55772255"))
 top_items = digit_counts.most_common(2)
-
 d1 = top_items[0][0] if len(top_items) > 0 else "7"
 d2 = top_items[1][0] if len(top_items) > 1 else "2"
 
@@ -87,35 +81,42 @@ ist_timezone = pytz.timezone('Asia/Kolkata')
 current_time_ist = datetime.now(ist_timezone)
 formatted_date = current_time_ist.strftime("%d-%m-%Y")
 formatted_time = current_time_ist.strftime("%I:%M %p")
-session_tag = "🔴 OPEN SESSION" if current_time_ist.hour < 17 else "⚫ CLOSE SESSION"
+session_tag = "OPEN SESSION" if current_time_ist.hour < 17 else "CLOSE SESSION"
 
-# Generate Alert Layout
-message = (
-    "🚨 *KALYAN INSTANT RESULT PUBLISHED* 🚨\n"
+# --- 4. Generate Alert Message ---
+tg_message = (
+    "🚨 *KALYAN INSTANT RESULT* 🚨\n"
     f"📅 *Date:* `{formatted_date}` | 🕒 *Time:* `{formatted_time}`\n"
-    f"📌 *Market Timing:* `{session_tag}`\n"
+    f"📌 *Timing:* `{session_tag}`\n"
     "━━━━━━━━━━━━━━━━━━━━━\n"
     f"⚡ *LIVE RUNNING PANNA:* 🔥 `{baseline_panna if baseline_panna else 'Not Listed'}` 🔥\n"
     "━━━━━━━━━━━━━━━━━━━━━\n"
-    "🔮 *Strongest Single Digits (OTC):*\n"
-    f"👉 `{d1}` and `{d2}`\n\n"
-    "🎲 *Top Target Jodis:* \n"
-    f"👉 `{d1}{d2}`, `{d2}{d1}`, `{d1}{c1}`, `{d2}{c2}`\n\n"
-    "📋 *Top Target Pannas:* \n"
-    f"👉 `{d1}{d2}0`, `12{d1}`, `35{d2}`\n"
-    "━━━━━━━━━━━━━━━━━━━━━"
+    f"🔮 *Single Digits:* `{d1}` and `{d2}`\n"
+    f"🎲 *Top Jodis:* `{d1}{d2}`, `{d2}{d1}`, `{d1}{c1}`, `{d2}{c2}`\n"
+    f"📋 *Top Pannas:* `{d1}{d2}0`, `12{d1}`, `35{d2}`\n"
+    "━━━━━━━━━━━━━━━━━━━━━\n"
+    "ℹ️ _This alert will self-delete when the next session updates._"
 )
 
-# Dispatch Message
+# --- 5. Dispatch Screenshot Image with Text Caption ---
 if clean_token and TELEGRAM_CHAT_ID:
-    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"}
-    base_domain = "api.telegram.org"
-    endpoint_url = f"https://{base_domain}/bot{clean_token}/sendMessage"
-    try:
-        res = requests.post(endpoint_url, data=payload, timeout=15)
-        if res.status_code == 200:
-            print("SUCCESS: Instant update sent to Telegram.")
-        else:
-            print(f"Telegram error status: {res.status_code}")
-    except Exception as e:
-        print(f"Delivery failed: {e}")
+    # Generates a fresh picture snapshot of the live table layout
+    screenshot_url = f"https://thum.io{url}"
+    
+    tg_url = f"https://telegram.org{clean_token}/sendPhoto"
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "photo": screenshot_url,
+        "caption": tg_message,
+        "parse_mode": "Markdown"
+    }
+    
+    res = requests.post(tg_url, data=payload)
+    if res.status_code == 200:
+        # Save the new message ID so the next run can find it and delete it
+        new_msg_id = res.json().get("result", {}).get("message_id")
+        with open(log_file, "w") as f:
+            f.write(str(new_msg_id))
+        print(f"SUCCESS: Alert sent. Saved message ID: {new_msg_id}")
+    else:
+        print(f"Telegram error: {res.status_code}")
