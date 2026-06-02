@@ -36,6 +36,7 @@ if not all_numbers:
 digit_counts = collections.Counter(all_numbers)
 top_items = digit_counts.most_common(2)
 
+# Safely extract digits
 d1 = top_items[0][0] if len(top_items) > 0 else "7"
 d2 = top_items[1][0] if len(top_items) > 1 else "2"
 
@@ -58,10 +59,13 @@ message = (
 if TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
     telegram_url = f"https://telegram.org{TELEGRAM_TOKEN}/sendMessage"
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"}
-    res = requests.post(telegram_url, json=payload)
-    if res.status_code == 200:
-        print("SUCCESS: Summary panel dispatched to your Telegram app.")
-    else:
-        print(f"TELEGRAM API ERROR: Code {res.status_code}. Verify your secret keys.")
+    try:
+        res = requests.post(telegram_url, json=payload)
+        if res.status_code == 200:
+            print("SUCCESS: Summary panel dispatched to your Telegram app.")
+        else:
+            print(f"TELEGRAM API ERROR: Code {res.status_code}. Verify your secret keys.")
+    except Exception as e:
+        print(f"Failed to send to Telegram: {e}")
 else:
     print("SETUP ERROR: Key variables are completely missing inside GitHub Secrets.\n\n", message)
