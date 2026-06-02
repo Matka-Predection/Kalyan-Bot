@@ -1,0 +1,26 @@
+name: Run Kalyan Predictor Daily
+
+on:
+  schedule:
+    # This runs the script automatically every day at 4:30 PM UTC (10:00 PM IST)
+    - cron: '30 16 * * *'
+  workflow_dispatch: # This allows you to also run it manually anytime
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+
+      - name: Set up Python environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install website reader tools
+        run: |
+          pip install requests beautifulsoup4
+
+      - name: Run calculation engine
+        run: python simple_predict.py
