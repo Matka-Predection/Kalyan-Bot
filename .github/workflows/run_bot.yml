@@ -2,12 +2,18 @@ name: Run Kalyan Predictor Daily
 
 on:
   schedule:
-    - cron: '30 16 * * *'
+    # Trigger 1: 4:00 PM IST (10:30 UTC) | Trigger 2: 6:00 PM IST (12:30 UTC)
+    - cron: '30 10 * * *'
+    - cron: '30 12 * * *'
   workflow_dispatch: 
 
 jobs:
   run-script:
     runs-on: ubuntu-latest
+    
+    env:
+      TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
     steps:
       - name: Checkout repository code
@@ -19,7 +25,4 @@ jobs:
           pip3 install requests beautifulsoup4
 
       - name: Run calculation engine and send alerts
-        env:
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python3 simple_predict.py
