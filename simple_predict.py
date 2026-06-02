@@ -7,8 +7,11 @@ from bs4 import BeautifulSoup
 RAW_TOKEN = os.environ.get("TELEGRAM_TOKEN", "").strip()
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
 
-# Auto-clean the token in case URLs or "bot" text were pasted by mistake
-TELEGRAM_TOKEN = RAW_TOKEN.replace("https://telegram.org", "").replace("bot", "").replace("/", "")
+# BULLETPROOF CLEANING: Extract only the actual token (numbers, colon, and letters)
+# This removes "https://", "api.telegram.org", "bot", and slashes completely.
+clean_token = RAW_TOKEN
+for bad_word in ["https://", "http://", "api.telegram.org", "telegram.org", "bot", "/"]:
+    clean_token = clean_token.replace(bad_word, "")
 
 print("Connecting to live chart...")
 
@@ -45,29 +48,29 @@ cut_numbers = {'1':'6', '2':'7', '3':'8', '4':'9', '5':'0', '6':'1', '7':'2', '8
 c1, c2 = cut_numbers.get(d1, "2"), cut_numbers.get(d2, "7")
 
 message = (
-    " Bars *KALYAN SYSTEM PREDICTIONS*\n"
+    "📊 *KALYAN SYSTEM PREDICTIONS*\n"
     "━━━━━━━━━━━━━━━━━━━━━\n"
-    " Crystal Ball *Strongest Single Digits (OTC):*\n"
+    "🔮 *Strongest Single Digits (OTC):*\n"
     f"👉 `{d1}` and `{d2}`\n\n"
-    " Game Die *Top Target Jodis:* \n"
+    "🎲 *Top Target Jodis:* \n"
     f"👉 `{d1}{d2}`, `{d2}{d1}`, `{d1}{c1}`, `{d2}{c2}`\n\n"
-    " Clipboard *Top Target Pannas:* \n"
+    "📋 *Top Target Pannas:* \n"
     f"👉 `{d1}{d2}0`, `12{d1}`, `35{d2}`\n"
     "━━━━━━━━━━━━━━━━━━━━━"
 )
 
-if TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
-    # This explicit definition guarantees the exact API endpoint structure
-    telegram_url = f"https://telegram.org{TELEGRAM_TOKEN}/sendMessage"
+if clean_token and TELEGRAM_CHAT_ID:
+    # This hardcoded format guarantees the absolute correct URL structure
+    telegram_url = f"https://telegram.org{clean_token}/sendMessage"
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"}
     try:
         res = requests.post(telegram_url, json=payload)
         if res.status_code == 200:
             print("SUCCESS: Summary panel dispatched to your Telegram app.")
         else:
-            print(f"TELEGRAM API ERROR: Code {res.status_code}. Status text: {res.text}")
+            print(f"TELEGRAM API ERROR: Code {res.status_code}. Details: {res.text}")
+            print("Tip: Make sure you sent a message or /start to your bot first on Telegram!")
     except Exception as e:
-        print(f"Failed to send to Telegram. Constructed URL was: https://telegram.org[HIDDEN]/sendMessage")
-        print(f"Error Details: {e}")
+        print(f"Failed to send. Error Details: {e}")
 else:
-    print("SETUP ERROR: Key variables are completely missing inside GitHub Secrets.\n\n", message)
+    print("SETUP ERROR: Key variables are missing or empty.\n\n", message)
