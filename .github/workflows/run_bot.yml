@@ -10,22 +10,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Upgraded to v5 for native Node 24 support (Removes the warnings)
+      # Native Node 24 action (No warnings)
       - name: Checkout repository code
         uses: actions/checkout@v5
 
-      # Upgraded to v5 for native Node 24 support (Removes the warnings)
-      - name: Set up Python environment
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
+      # Bypasses setup-python to use the pre-installed system Python cleanly
       - name: Install website reader tools
         run: |
-          pip install requests beautifulsoup4
+          python3 -m pip install --upgrade pip
+          pip3 install requests beautifulsoup4
 
       - name: Run calculation engine and send alerts
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python simple_predict.py
+        run: python3 simple_predict.py
