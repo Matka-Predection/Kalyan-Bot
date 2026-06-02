@@ -1,4 +1,4 @@
-name: Run Live Kalyan Tracker Loop
+name: Run Live Kalyan Open Tracker Loop
 
 on:
   schedule:
@@ -23,5 +23,5 @@ jobs:
           python3 -m pip install --upgrade pip
           pip3 install requests beautifulsoup4 pytz
 
-      - name: Start Realtime Monitoring Loop
+      - name: Start Realtime Monitoring Open Loop
         run: python3 simple_predict.py
