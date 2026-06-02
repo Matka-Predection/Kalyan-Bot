@@ -2,7 +2,6 @@ name: Run Live Kalyan Open Tracker Loop
 
 on:
   schedule:
-    # Wakes up automatically every day at 3:40 PM IST (10:10 AM UTC)
     - cron: '10 10 * * *'
   workflow_dispatch: 
 
@@ -25,3 +24,12 @@ jobs:
 
       - name: Start Realtime Monitoring Open Loop
         run: python3 simple_predict.py
+
+      # Allows GitHub to save the message ID back into your repository tracking log
+      - name: Save Tracking State
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@://github.com"
+          git add last_msg_id.txt || true
+          git commit -m "Update tracking state [skip ci]" || true
+          git push || true
