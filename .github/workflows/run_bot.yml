@@ -10,8 +10,9 @@ jobs:
   run-script:
     runs-on: ubuntu-latest
     
-    # This block silences the deprecation warning instantly
+    # Root level variables to bypass both sides of the deprecation alert
     env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
     steps:
