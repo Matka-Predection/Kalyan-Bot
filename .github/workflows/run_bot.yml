@@ -2,13 +2,18 @@ name: Run Kalyan Predictor Daily
 
 on:
   schedule:
-    # This runs the script automatically every day at 4:30 PM UTC (10:00 PM IST)
+    # Runs automatically every day at 10:00 PM IST (4:30 PM UTC)
     - cron: '30 16 * * *'
-  workflow_dispatch: # This allows you to also run it manually anytime
+  workflow_dispatch: 
 
 jobs:
   run-script:
     runs-on: ubuntu-latest
+    
+    # This block turns on Node 24 support globally to stop the warning
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
     steps:
       - name: Checkout repository code
         uses: actions/checkout@v4
@@ -22,5 +27,8 @@ jobs:
         run: |
           pip install requests beautifulsoup4
 
-      - name: Run calculation engine
+      - name: Run calculation engine and send alerts
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python simple_predict.py
