@@ -19,10 +19,10 @@ jobs:
       - name: Checkout repository code
         uses: actions/checkout@v5
 
-      - name: Install website reader tools
+      - name: Install website reader and timezone tools
         run: |
           python3 -m pip install --upgrade pip
-          pip3 install requests beautifulsoup4
+          pip3 install requests beautifulsoup4 pytz
 
       - name: Run calculation engine and send alerts
         run: python3 simple_predict.py
