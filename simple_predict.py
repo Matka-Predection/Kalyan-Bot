@@ -8,7 +8,7 @@ import pytz
 RAW_TOKEN = os.environ.get("TELEGRAM_TOKEN", "").strip()
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
 
-# Strip any unexpected characters or link prefixes from the token
+# Clean the token completely of any accidental URLs or text
 clean_token = RAW_TOKEN
 for bad_word in ["https://", "http://", "api.telegram.org", "telegram.org", "bot", "/"]:
     clean_token = clean_token.replace(bad_word, "")
@@ -24,13 +24,9 @@ if os.path.exists(log_file):
     try:
         with open(log_file, "r") as f:
             old_msg_id = f.read().strip()
-        if old_msg_id:
-            # Hardcoded direct endpoint to bypass parsing bugs
-            requests.post(
-                "https://telegram.org" + clean_token + "/deleteMessage",
-                data={"chat_id": TELEGRAM_CHAT_ID, "message_id": old_msg_id},
-                timeout=10
-            )
+        if old_msg_id and clean_token:
+            target_url = "https://telegram.org" + str(clean_token) + "/deleteMessage"
+            requests.post(target_url, data={"chat_id": TELEGRAM_CHAT_ID, "message_id": old_msg_id}, timeout=10)
             print(f"Cleaned up previous message ID: {old_msg_id}")
     except Exception as e:
         print(f"Cleanup skip: {e}")
@@ -95,8 +91,8 @@ tg_message = (
 if clean_token and TELEGRAM_CHAT_ID:
     screenshot_url = f"https://thum.io{url}"
     
-    # FIX: String concatenation instead of formatted f-string domain resolution to prevent internal parser splits
-    endpoint_url = "https://telegram.org" + clean_token + "/sendPhoto"
+    # Built using clean string concatenation to prevent formatting bugs
+    endpoint_url = "https://telegram.org" + str(clean_token) + "/sendPhoto"
     
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
@@ -114,5 +110,8 @@ if clean_token and TELEGRAM_CHAT_ID:
             print(f"SUCCESS: Prediction panel dispatched. Message ID: {new_msg_id}")
         else:
             print(f"Telegram processing alert error: {res.status_code}. Text: {res.text}")
+            print("Tip: Ensure you have started a chat with your bot by clicking /start inside Telegram!")
     except Exception as e:
         print(f"Delivery breakdown details: {e}")
+else:
+    print(f"SETUP ERROR: Clean token is length {len(clean_token)}. Chat ID is length {len(TELEGRAM_CHAT_ID)}.")
