@@ -2,7 +2,6 @@ name: Run Kalyan Predictor Daily
 
 on:
   schedule:
-    # Runs automatically every day at 10:00 PM IST (4:30 PM UTC)
     - cron: '30 16 * * *'
   workflow_dispatch: 
 
@@ -11,10 +10,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Use basic tags to let GitHub handle internal compilation cleanly
+      # Upgraded to v5 for native Node 24 support (Removes the warnings)
       - name: Checkout repository code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
+      # Upgraded to v5 for native Node 24 support (Removes the warnings)
       - name: Set up Python environment
         uses: actions/setup-python@v5
         with:
@@ -26,7 +26,6 @@ jobs:
 
       - name: Run calculation engine and send alerts
         env:
-          # Fixed syntax: Changed double colons to standard dot notation
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python simple_predict.py
